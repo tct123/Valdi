@@ -4423,7 +4423,7 @@ TEST_P(RuntimeFixture, unwrapsProxyObjectThroughUntypedUnmarshalling) {
     auto schema = ValueSchema::cls(STRING_LITERAL("MyClass"), true, {});
     auto proxyObject = makeShared<TestValueTypedProxyObject>(ValueTypedObject::make(schema.getClassRef()));
 
-    auto objectsManager = wrapper.runtime->getJavaScriptRuntime()->createNativeObjectsManager();
+    auto objectsManager = wrapper.runtime->getJavaScriptRuntime()->createNativeObjectsManager("");
 
     auto jsResult = callFunctionSync(wrapper, "test/src/WrapNativeObject", "wrapper", {Value(proxyObject)});
 
@@ -6154,7 +6154,7 @@ class MyNativeObject : public ValdiObject {
 TEST_P(RuntimeFixture, supportsUserCreatedNativeObjects) {
     Ref<MyNativeObject> nativeObject = makeShared<MyNativeObject>();
 
-    auto objectsManager = wrapper.runtime->getJavaScriptRuntime()->createNativeObjectsManager();
+    auto objectsManager = wrapper.runtime->getJavaScriptRuntime()->createNativeObjectsManager("");
 
     ASSERT_EQ(1, nativeObject.use_count());
 

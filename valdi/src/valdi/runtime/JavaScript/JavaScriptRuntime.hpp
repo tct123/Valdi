@@ -262,7 +262,8 @@ public:
 
     void addModuleUnloadObserver(const Valdi::StringBox& path, const Valdi::Value& observer) override;
 
-    std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager> createNativeObjectsManager() override;
+    std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager> createNativeObjectsManager(
+        const std::string& scopeName) override;
 
     void destroyNativeObjectsManager(
         const std::shared_ptr<snap::valdi_core::JSRuntimeNativeObjectsManager>& nativeObjectsManager) override;
