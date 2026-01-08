@@ -85,7 +85,7 @@ export class WebValdiLayout {
     return element;
   }
 
-  makeRoot(root: HTMLElement) {
+  makeRoot(root: HTMLElement | ShadowRoot) {
     this.parent?.removeChild(this);
     this.parent = null;
     root.replaceChildren(this.htmlElement);

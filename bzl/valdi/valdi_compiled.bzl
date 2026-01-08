@@ -100,6 +100,7 @@ ValdiModuleInfo = provider(
         "web_debug_strings": "Web debug strings",
         "web_release_strings": "Web release strings",
         "web_deps": "Web ts/js dependencies",
+        "web_dts_files": "TypeScript declaration files (.d.ts) for web",
     },
 )
 
@@ -1398,6 +1399,7 @@ def _create_valdi_module_info(ctx, module_name, module_yaml, module_definition, 
         web_debug_strings = _extract_web_strings("debug", outputs),
         web_release_strings = _extract_web_strings("release", outputs),
         web_deps = _extract_npm_package_files(ctx.attr.web_deps),
+        web_dts_files = in_declarations + out_declarations,
     )
 
 def _extract_npm_package_files(pkgs):

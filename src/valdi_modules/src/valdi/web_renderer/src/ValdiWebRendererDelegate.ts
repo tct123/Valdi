@@ -20,7 +20,7 @@ export interface UpdateAttributeDelegate {
 export class ValdiWebRendererDelegate implements IRendererDelegate {
   private attributeDelegate?: UpdateAttributeDelegate;
 
-  constructor(private htmlRoot: HTMLElement) {
+  constructor(private htmlRoot: HTMLElement | ShadowRoot) {
     registerElements();
   }
   setAttributeDelegate(delegate: UpdateAttributeDelegate) {

@@ -905,6 +905,14 @@ def _setup_web_target(name, deps, compiled_module_target, visibility, compilatio
         visibility = visibility,
     )
 
+    # All TypeScript declaration files
+    extract_transitive_valdi_module_output(
+        name = "web.dts.all",
+        modules = [compiled_module_target],
+        output_name = "web_dts_files",
+        visibility = visibility,
+    )
+
     native.filegroup(
         name = "{}_all_web_deps".format(name),
         srcs = [":web.deps.all"],
@@ -919,7 +927,7 @@ def _setup_web_target(name, deps, compiled_module_target, visibility, compilatio
 
     native.filegroup(
         name = "{}_web_srcs_filegroup".format(name),
-        srcs = web_srcs_all + web_resource_files_all + web_strings_all + [":web.protodecl.all", ":web.deps.all"],
+        srcs = web_srcs_all + web_resource_files_all + web_strings_all + [":web.protodecl.all", ":web.deps.all", ":web.dts.all"],
         visibility = visibility,
     )
 
