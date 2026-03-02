@@ -757,6 +757,11 @@ Ref<ValdiRuntimeTweaks> Runtime::getRuntimeTweaks() {
     return _resourceManager->getRuntimeTweaks();
 }
 
+bool Runtime::disableHitTestSyncDeadline() const {
+    const auto& tweaks = _resourceManager->getRuntimeTweaks();
+    return tweaks.get() != nullptr && tweaks->disableHitTestSyncDeadline();
+}
+
 void Runtime::registerJavaScriptModuleFactory(const Ref<JavaScriptModuleFactory>& moduleFactory) {
     _javaScriptRuntime->registerJavaScriptModuleFactory(moduleFactory);
 }

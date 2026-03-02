@@ -111,4 +111,8 @@ bool ValdiRuntimeTweaks::disableJsLogging() const {
     return _tweakValueProvider->getBool(configKey, false);
 }
 
+bool ValdiRuntimeTweaks::disableHitTestSyncDeadline() const {
+    return getConfigKey("VALDI_DISABLE_HIT_TEST_SYNC_DEADLINE");
+}
+
 } // namespace Valdi

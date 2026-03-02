@@ -89,6 +89,13 @@ typedef uint32_t SCValdiContextId;
 @property (readonly, nonatomic) BOOL destroyed;
 
 /**
+ * Returns whether the hit test sync deadline (callSyncWithDeadline) should be disabled,
+ * reverting to the legacy blocking dispatch_sync behavior. Controlled via the
+ * VALDI_DISABLE_HIT_TEST_SYNC_DEADLINE runtime tweak.
+ */
+@property (readonly, nonatomic) BOOL disableHitTestSyncDeadline;
+
+/**
  Reference to the root view's component's actions.
 
  This is a legacy API used to allow JS code to trigger Objective-C actions.
