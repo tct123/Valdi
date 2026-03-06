@@ -28,7 +28,8 @@ enum class LogContext {
     Notifications,
     S2REvent,
     Atlas,
-    NeoPlayer
+    NeoPlayer,
+    MediaStrategyCenter
 };
 
 /**
