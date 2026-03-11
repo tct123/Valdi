@@ -36,4 +36,5 @@ data class ValdiTweaks(
          val maxViewOperationsProcessingTimeMs: Int = 0,
          val disableHitTestSyncDeadline: Boolean = false,
          val enableTextAlignmentForRTL: Boolean = true,
+         val updatePointScaleOnResume: Boolean = false,
 )

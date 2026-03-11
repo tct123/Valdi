@@ -340,7 +340,7 @@ jlong ValdiAndroid::NativeBridge::createRuntime( // NOLINT
     auto runtime = runtimeManagerWrapper->createRuntime(customResourceResolver);
 
     auto* runtimeWrapper =
-        new ValdiAndroid::RuntimeWrapper(runtime, runtimeManagerWrapper, runtimeManagerWrapper->getPointScale());
+        new ValdiAndroid::RuntimeWrapper(runtime, runtimeManagerWrapper);
 
     return reinterpret_cast<std::uintptr_t>(runtimeWrapper);
 }
@@ -1374,6 +1374,18 @@ void ValdiAndroid::NativeBridge::applicationSetConfiguration( // NOLINT
     wrapper->setDynamicTypeScale(dynamicTypeScale);
 }
 
+void ValdiAndroid::NativeBridge::setPointScale(  // NOLINT
+    fbjni::alias_ref<fbjni::JClass> /* clazz */, // NOLINT
+    jlong runtimeManagerHandle,
+    jfloat pointScale) {
+    auto* wrapper = getRuntimeManagerWrapper(runtimeManagerHandle);
+    if (wrapper == nullptr) {
+        return;
+    }
+
+    wrapper->setPointScale(pointScale);
+}
+
 void ValdiAndroid::NativeBridge::applicationDidResume( // NOLINT
     fbjni::alias_ref<fbjni::JClass> /* clazz */,       // NOLINT
     jlong runtimeManagerHandle) {
@@ -2356,6 +2368,7 @@ void ValdiAndroid::NativeBridge::registerNatives() {
         makeNativeMethod("canViewNodeScroll", ValdiAndroid::NativeBridge::canViewNodeScroll),
         makeNativeMethod("isViewNodeScrollingOrAnimating", ValdiAndroid::NativeBridge::isViewNodeScrollingOrAnimating),
         makeNativeMethod("applicationSetConfiguration", ValdiAndroid::NativeBridge::applicationSetConfiguration),
+        makeNativeMethod("setPointScale", ValdiAndroid::NativeBridge::setPointScale),
         makeNativeMethod("applicationDidResume", ValdiAndroid::NativeBridge::applicationDidResume),
         makeNativeMethod("applicationIsInLowMemory", ValdiAndroid::NativeBridge::applicationIsInLowMemory),
         makeNativeMethod("applicationWillPause", ValdiAndroid::NativeBridge::applicationWillPause),

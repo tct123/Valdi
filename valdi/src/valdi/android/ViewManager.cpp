@@ -220,7 +220,11 @@ Valdi::NativeAnimator ViewManager::createAnimator(snap::valdi_core::AnimationTyp
 }
 
 float ViewManager::getPointScale() const {
-    return _pointScale;
+    return _pointScale.load(std::memory_order_relaxed);
+}
+
+void ViewManager::setPointScale(float pointScale) {
+    _pointScale.store(pointScale, std::memory_order_relaxed);
 }
 
 void ViewManager::onDebugMessage(int32_t level, const std::string& message) {

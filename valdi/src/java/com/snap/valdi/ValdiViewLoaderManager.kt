@@ -168,7 +168,7 @@ class ValdiRuntimeManager(context: Context,
     val viewRefSupport: ViewRefSupport
     val imageLoaderPostprocessor: ValdiImageLoaderPostprocessor
 
-    private val displayScale = context.resources.displayMetrics.density
+    private var displayScale = context.resources.displayMetrics.density
 
     private val snapDrawingRuntimeField: SnapDrawingRuntimeCPP?
 
@@ -666,6 +666,11 @@ class ValdiRuntimeManager(context: Context,
     fun applicationDidResume() {
         runOnMainThreadIfNeeded {
             val density = context.resources.displayMetrics.density
+            if (tweaks?.updatePointScaleOnResume == true && density != displayScale) {
+                displayScale = density
+                NativeBridge.setPointScale(handle.nativeHandle, density)
+                snapDrawingRuntimeField?.updateDisplayScale(density)
+            }
             val scaledDensity = context.resources.displayMetrics.scaledDensity
             val dynamicTypeScale = scaledDensity / density
             NativeBridge.applicationSetConfiguration(handle.nativeHandle, dynamicTypeScale)
