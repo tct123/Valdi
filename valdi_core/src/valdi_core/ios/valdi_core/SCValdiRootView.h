@@ -69,7 +69,7 @@ view classes.
  *
  * This is a designated initializer.
  */
-- (instancetype)initWithoutValdiContext NS_SWIFT_NAME(initWithoutValdiContext()) NS_DESIGNATED_INITIALIZER;
+- (instancetype)initWithoutValdiContext NS_SWIFT_NAME(init()) NS_DESIGNATED_INITIALIZER;
 
 - (instancetype)initWithCoder:(NSCoder*)aDecoder __attribute__((unavailable("initWithCoder: is not available")));
 
