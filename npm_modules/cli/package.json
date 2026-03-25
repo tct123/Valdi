@@ -20,7 +20,7 @@
     "prepare": "npm run build",
     "prebuild": "node scripts/bundle-skills.js",
     "build": "npm exec --package=typescript@5.9.2 tsc -- --project ./tsconfig.dist.json",
-    "test": "ts-node node_modules/jasmine/bin/jasmine",
+    "test": "tsx node_modules/jasmine/bin/jasmine",
     "watch": "tsc --watch",
     "main": "ts-node ./src/index.ts",
     "format": "prettier --ignore-path .gitignore --write \"**/*.+(js|ts|json)\"",
