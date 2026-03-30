@@ -23,8 +23,7 @@
                         fontManager:(SCValdiFontManager*)fontManager;
 
 - (void)setAllowDarkMode:(BOOL)allowDarkMode
-    useScreenUserInterfaceStyleForDarkMode:(BOOL)useScreenUserInterfaceStyleForDarkMode
-          useNewStatusBarInsetCalculation:(BOOL)useNewStatusBarInsetCalculation;
+    useScreenUserInterfaceStyleForDarkMode:(BOOL)useScreenUserInterfaceStyleForDarkMode;
 
 @end
 

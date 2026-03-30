@@ -20,8 +20,7 @@
 
 - (instancetype)initWithJSQueueDispatcher:(id<SCValdiJSQueueDispatcher>)jsQueueDispatcher;
 - (void)setAllowDarkMode:(BOOL)allowDarkMode
-    useScreenUserInterfaceStyleForDarkMode:(BOOL)useScreenUserInterfaceStyleForDarkMode
-          useNewStatusBarInsetCalculation:(BOOL)useNewStatusBarInsetCalculation;
+    useScreenUserInterfaceStyleForDarkMode:(BOOL)useScreenUserInterfaceStyleForDarkMode;
 - (void)ensureDeviceModuleIsReadyForContextCreation;
 
 @end

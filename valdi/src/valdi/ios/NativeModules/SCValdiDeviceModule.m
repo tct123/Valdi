@@ -40,7 +40,6 @@
     NSLocale *_locale;
     BOOL _allowDarkMode;
     BOOL _useScreenUserInterfaceStyleForDarkMode;
-    BOOL _useNewStatusBarInsetCalculation;
     BOOL _deviceSettingsReady;
     int _scheduledEnsureDeviceModuleIsReady;
 }
@@ -122,107 +121,21 @@
 
 - (UIEdgeInsets)_currentInsets
 {
-    if (!_useNewStatusBarInsetCalculation) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-        UIEdgeInsets keyWindowInsets = UIApplication.sharedApplication.keyWindow.safeAreaInsets;
+    UIEdgeInsets keyWindowInsets = UIApplication.sharedApplication.keyWindow.safeAreaInsets;
 #pragma clang diagnostic pop
-        SCLogValdiDebug(@"SCValdiDeviceModule: [legacy] insets from safeAreaInsets (%0.1f,%0.1f,%0.1f,%0.1f)",
-                        keyWindowInsets.top, keyWindowInsets.left, keyWindowInsets.bottom, keyWindowInsets.right);
-        if (UIEdgeInsetsEqualToEdgeInsets(keyWindowInsets, UIEdgeInsetsZero)) {
+    SCLogValdiDebug(@"SCValdiDeviceModule: [legacy] insets from safeAreaInsets (%0.1f,%0.1f,%0.1f,%0.1f)",
+                    keyWindowInsets.top, keyWindowInsets.left, keyWindowInsets.bottom, keyWindowInsets.right);
+    if (UIEdgeInsetsEqualToEdgeInsets(keyWindowInsets, UIEdgeInsetsZero)) {
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
-            CGFloat statusBarHeight = UIApplication.sharedApplication.statusBarFrame.size.height;
+        CGFloat statusBarHeight = UIApplication.sharedApplication.statusBarFrame.size.height;
 #pragma clang diagnostic pop
-            SCLogValdiDebug(@"SCValdiDeviceModule: [legacy] using status bar fallback height=%0.1f", statusBarHeight);
-            return UIEdgeInsetsMake(statusBarHeight, 0, 0, 0);
-        }
-        return keyWindowInsets;
+        SCLogValdiDebug(@"SCValdiDeviceModule: [legacy] using status bar fallback height=%0.1f", statusBarHeight);
+        return UIEdgeInsetsMake(statusBarHeight, 0, 0, 0);
     }
-
-    UIWindow *resolvedWindow = [self _resolvedWindowForInsets];
-    CGFloat statusBarHeight = [self _statusBarHeightForWindow:resolvedWindow];
-    UIEdgeInsets insets = resolvedWindow.safeAreaInsets;
-    SCLogValdiDebug(@"SCValdiDeviceModule: calculated insets from safeAreaInsets (%0.1f,%0.1f,%0.1f,%0.1f), keyWindow=%@",
-                      insets.top, insets.left, insets.bottom, insets.right,
-                      resolvedWindow ? @"present" : @"nil");
-    if (insets.top <= 0.0f && statusBarHeight > 0.0f) {
-        SCLogValdiDebug(@"SCValdiDeviceModule: using status bar fallback height=%0.1f", statusBarHeight);
-        insets.top = statusBarHeight;
-    }
-    return insets;
-}
-
-- (UIWindow *)_resolvedWindowForInsets
-{
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    UIWindow *keyWindow = UIApplication.sharedApplication.keyWindow;
-#pragma clang diagnostic pop
-    if (keyWindow) {
-        return keyWindow;
-    }
-
-    NSSet<UIScene *> *scenes = UIApplication.sharedApplication.connectedScenes;
-    for (UIScene *scene in scenes) {
-        if (![scene isKindOfClass:[UIWindowScene class]]) {
-            continue;
-        }
-        if (scene.activationState != UISceneActivationStateForegroundActive &&
-            scene.activationState != UISceneActivationStateForegroundInactive) {
-            continue;
-        }
-        UIWindowScene *windowScene = (UIWindowScene *)scene;
-        for (UIWindow *window in windowScene.windows) {
-            if (window.isKeyWindow) {
-                return window;
-            }
-        }
-        for (UIWindow *window in windowScene.windows) {
-            if (!window.hidden && window.alpha > 0.0f) {
-                return window;
-            }
-        }
-    }
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    for (UIWindow *window in UIApplication.sharedApplication.windows) {
-        if (window.isKeyWindow) {
-            return window;
-        }
-    }
-    return UIApplication.sharedApplication.windows.firstObject;
-#pragma clang diagnostic pop
-}
-
-- (CGFloat)_statusBarHeightForWindow:(UIWindow *)window
-{
-    UIWindowScene *windowScene = window.windowScene;
-    if (!windowScene) {
-        NSSet<UIScene *> *scenes = UIApplication.sharedApplication.connectedScenes;
-        for (UIScene *scene in scenes) {
-            if (![scene isKindOfClass:[UIWindowScene class]]) {
-                continue;
-            }
-            if (scene.activationState == UISceneActivationStateForegroundActive ||
-                scene.activationState == UISceneActivationStateForegroundInactive) {
-                windowScene = (UIWindowScene *)scene;
-                break;
-            }
-        }
-    }
-    UIStatusBarManager *statusBarManager = windowScene.statusBarManager;
-    if (statusBarManager && !statusBarManager.isStatusBarHidden) {
-        CGRect statusBarFrame = statusBarManager.statusBarFrame;
-        return MIN(CGRectGetWidth(statusBarFrame), CGRectGetHeight(statusBarFrame));
-    }
-
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wdeprecated-declarations"
-    CGRect statusBarFrame = UIApplication.sharedApplication.statusBarFrame;
-#pragma clang diagnostic pop
-    return MIN(CGRectGetWidth(statusBarFrame), CGRectGetHeight(statusBarFrame));
+    return keyWindowInsets;
 }
 
 - (void)_dispatchOnJsQueue:(dispatch_block_t)block
@@ -278,19 +191,9 @@
         _displayWidth = screen.bounds.size.width;
         _displayHeight = screen.bounds.size.height;
         _displayScale = screen.scale;
-        if (_useNewStatusBarInsetCalculation) {
-            // Preserve the direct observer notify flow, but refresh insets first so top inset reflects rotation.
-            UIEdgeInsets updatedInsets = [self _currentInsets];
-            [self _dispatchOnJsQueue:^{
-                self->_insets = updatedInsets;
-                [self->_displayInsetsObserver notifyWithMarshaller:nil];
-            }];
-        } else {
-            // Legacy path only notifies JS; inset recalculation remains lazy.
-            [self _dispatchOnJsQueue:^{
-                [self->_displayInsetsObserver notifyWithMarshaller:nil];
-            }];
-        }
+        [self _dispatchOnJsQueue:^{
+            [self->_displayInsetsObserver notifyWithMarshaller:nil];
+        }];
     });
 }
 
@@ -339,12 +242,10 @@
 
 - (void)setAllowDarkMode:(BOOL)allowDarkMode
     useScreenUserInterfaceStyleForDarkMode:(BOOL)useScreenUserInterfaceStyleForDarkMode
-          useNewStatusBarInsetCalculation:(BOOL)useNewStatusBarInsetCalculation
 {
     @synchronized (self) {
         _allowDarkMode = allowDarkMode;
         _useScreenUserInterfaceStyleForDarkMode = useScreenUserInterfaceStyleForDarkMode;
-        _useNewStatusBarInsetCalculation = useNewStatusBarInsetCalculation;
     }
     [self notifyJSDarkModeChanged];
 }

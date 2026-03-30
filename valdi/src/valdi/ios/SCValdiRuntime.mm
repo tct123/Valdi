@@ -367,11 +367,9 @@
 
 - (void)setAllowDarkMode:(BOOL)allowDarkMode
     useScreenUserInterfaceStyleForDarkMode:(BOOL)useScreenUserInterfaceStyleForDarkMode
-          useNewStatusBarInsetCalculation:(BOOL)useNewStatusBarInsetCalculation
 {
     [_deviceModule setAllowDarkMode:allowDarkMode
-        useScreenUserInterfaceStyleForDarkMode:useScreenUserInterfaceStyleForDarkMode
-              useNewStatusBarInsetCalculation:useNewStatusBarInsetCalculation];
+        useScreenUserInterfaceStyleForDarkMode:useScreenUserInterfaceStyleForDarkMode];
 }
 
 #pragma mark - Asset factories
