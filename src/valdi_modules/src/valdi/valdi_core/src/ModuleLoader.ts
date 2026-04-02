@@ -191,6 +191,14 @@ export class ModuleLoader implements IModuleLoader {
     this.doPreload(resolvedPath.absolutePath, 0, maxDepth, {});
   }
 
+  preloadBatch(paths: string[], maxDepth: number): void {
+    const visited: StringSet = {};
+    for (let i = 0; i < paths.length; i++) {
+      const resolvedPath = resolveAbsoluteImportFromPath(paths[i]);
+      this.doPreload(resolvedPath.absolutePath, 0, maxDepth, visited);
+    }
+  }
+
   private doPreload(path: string, currentDepth: number, maxDepth: number, visitedModulePaths: StringSet) {
     if (visitedModulePaths[path]) {
       return;

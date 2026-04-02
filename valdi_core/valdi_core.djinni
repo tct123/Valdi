@@ -153,6 +153,8 @@ JSRuntime = interface +c {
 
   preloadModule(path: InternedString, maxDepth: i32);
 
+  preloadModules(paths: list<InternedString>, maxDepth: i32);
+
   createNativeObjectsManager(scopeName: string): JSRuntimeNativeObjectsManager;
 
   destroyNativeObjectsManager(nativeObjectsManager: JSRuntimeNativeObjectsManager);

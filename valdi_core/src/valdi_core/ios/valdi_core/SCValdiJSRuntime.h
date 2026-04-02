@@ -29,6 +29,21 @@ generated code to call functions defined in your Valdi modules.
     */
 - (void)preloadModuleAtPath:(NSString*)path maxDepth:(NSUInteger)maxDepth;
 
+/**
+ * Batch-preload multiple modules in a single C++/JS-thread dispatch.
+ */
+- (void)preloadModulesAtPaths:(NSArray<NSString*>*)paths maxDepth:(NSUInteger)maxDepth;
+
+/**
+ * Pre-warm the JS-side value marshaller for the given object's type.
+ * On first encounter, the JS runtime compiles a marshalling plan for each class schema;
+ * calling this method triggers that compilation so that subsequent setupRootComponent or
+ * callModuleFunction calls avoid the first-time cost.
+ * The object must conform to SCValdiMarshallable (i.e. be a generated Valdi model class).
+ * Safe to call from any thread; work is dispatched to the JS thread.
+ */
+- (void)warmUpValueMarshallerForObject:(id)object;
+
 - (void)addHotReloadObserver:(id<SCValdiFunction>)hotReloadObserver forModulePath:(NSString*)modulePath;
 
 /**

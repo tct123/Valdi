@@ -106,6 +106,7 @@ constexpr size_t kIsLoadedPropertyName = 2;
 constexpr size_t kUnloadPropertyName = 3;
 constexpr size_t kRegisterModulePropertyName = 4;
 constexpr size_t kPreloadModulePropertyName = 5;
+constexpr size_t kPreloadBatchPropertyName = 6;
 
 const ResourceId& valdiModuleResourceId() {
     static auto kValdiModuleResourceId =
@@ -298,6 +299,7 @@ JavaScriptRuntime::JavaScriptRuntime(IJavaScriptBridge& jsBridge,
     _propertyNameIndex.set(kUnloadPropertyName, "unload");
     _propertyNameIndex.set(kRegisterModulePropertyName, "registerModule");
     _propertyNameIndex.set(kPreloadModulePropertyName, "preload");
+    _propertyNameIndex.set(kPreloadBatchPropertyName, "preloadBatch");
 
     _upTime.start();
     _initLock.enter();
@@ -3265,6 +3267,37 @@ void JavaScriptRuntime::preloadModule(const StringBox& path, int32_t maxDepth) {
 
         jsEntry.jsContext.callObjectProperty(
             _moduleLoader.get(), _propertyNameIndex.getJsName(kPreloadModulePropertyName), callContext);
+    });
+}
+
+void JavaScriptRuntime::preloadModules(const std::vector<StringBox>& paths, int32_t maxDepth) {
+    _resourceManager.warmUpBundles(paths);
+
+    dispatchOnJsThreadAsync(nullptr, [=](JavaScriptEntryParameters& jsEntry) {
+        VALDI_TRACE("Valdi.preloadModules");
+
+        auto pathsArray =
+            jsEntry.jsContext.newArrayWithValues(paths.size(), jsEntry.exceptionTracker, [&](size_t i) -> JSValueRef {
+                return jsEntry.jsContext.newStringUTF8(paths[i].toStringView(), jsEntry.exceptionTracker);
+            });
+
+        if (!jsEntry.exceptionTracker) {
+            return;
+        }
+
+        std::initializer_list<JSValueRef> params = {pathsArray, jsEntry.jsContext.newNumber(maxDepth)};
+
+        JSFunctionCallContext callContext(jsEntry.jsContext, params.begin(), params.size(), jsEntry.exceptionTracker);
+
+        jsEntry.jsContext.callObjectProperty(
+            _moduleLoader.get(), _propertyNameIndex.getJsName(kPreloadBatchPropertyName), callContext);
+    });
+}
+
+void JavaScriptRuntime::warmUpValueMarshaller(const Value& value) {
+    dispatchOnJsThreadAsync(nullptr, [value](JavaScriptEntryParameters& jsEntry) {
+        VALDI_TRACE("Valdi.warmUpValueMarshaller");
+        valueToJSValue(jsEntry.jsContext, value, ReferenceInfoBuilder(), jsEntry.exceptionTracker);
     });
 }
 

@@ -26,6 +26,10 @@ class ValdiJSWorker(val jsRuntime: JSRuntime) : ValdiJSRuntime {
         jsRuntime.preloadModule(modulePath, maxDepth)
     }
 
+    override fun preloadModules(modulePaths: List<String>, maxDepth: Int) {
+        jsRuntime.preloadModules(ArrayList(modulePaths), maxDepth)
+    }
+
     override fun runOnJsThread(runnable: Runnable) {
         jsRuntime.runOnJsThread(object: ValdiFunction {
             override fun perform(marshaller: ValdiMarshaller): Boolean {
