@@ -1,6 +1,6 @@
 {
   "name": "@snap/valdi",
-  "version": "1.0.9",
+  "version": "1.0.10",
   "description": "Valdi CLI tools for developers",
   "license": "MIT",
   "repository": {
@@ -8,7 +8,9 @@
     "url": "https://github.com/Snapchat/Valdi.git",
     "directory": "npm_modules/cli"
   },
-  "publishConfig": { "access": "public" },
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "valdi": "dist/index.js"
   },
@@ -58,9 +60,15 @@
     "@types/eslint": "^9.6.1",
     "@types/jasmine": "^5.1.7",
     "jasmine": "^5.6.0",
-    "ts-node": "^10.9.2"
+    "ts-node": "^10.9.2",
+    "tsx": "^4.19.0"
   },
   "overrides": {
-    "brace-expansion": "2.0.2"
+    "minimatch@3": {
+      "brace-expansion": "2.0.2"
+    },
+    "minimatch@9": {
+      "brace-expansion": "2.0.2"
+    }
   }
 }
