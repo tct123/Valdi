@@ -432,11 +432,13 @@ globalAny.__valdiLogToConsole__ = function (...args: unknown[]) {
 };
 
 // Capture native browser setTimeout/clearTimeout before Valdi replaces them (like we do for console)
+// Bind to window so they can be called without a receiver (e.g. timing.setTimeout(...)) without
+// throwing "Illegal invocation" on native functions that require window as `this`.
 (globalThis as any).__originalTimingFunctions__ = {
-  setTimeout: window.setTimeout,
-  clearTimeout: window.clearTimeout,
-  setInterval: window.setInterval,
-  clearInterval: window.clearInterval,
+  setTimeout: window.setTimeout.bind(window),
+  clearTimeout: window.clearTimeout.bind(window),
+  setInterval: window.setInterval.bind(window),
+  clearInterval: window.clearInterval.bind(window),
 };
 Object.freeze((globalThis as any).__originalTimingFunctions__);
 

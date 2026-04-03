@@ -1,5 +1,6 @@
 import { AttributedText, AttributedTextOnTap } from 'valdi_tsx/src/AttributedText';
 import { LabelTextDecoration } from 'valdi_tsx/src/NativeTemplateElements';
+import { convertColor } from '../styles/ValdiWebStyles';
 
 const enum AttributedTextEntryType {
   Content = 1,
@@ -114,7 +115,7 @@ function createStyledSpan(text: string, style: StyleState): HTMLSpanElement {
   span.textContent = text;
 
   if (style.color) {
-    span.style.color = style.color;
+    span.style.color = convertColor(style.color);
   }
 
   if (style.font) {
