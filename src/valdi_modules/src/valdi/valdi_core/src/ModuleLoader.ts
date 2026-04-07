@@ -602,6 +602,14 @@ export class ModuleLoader implements IModuleLoader {
 
           return exportsObj[key];
         },
+        set(target, key, value) {
+          if (!didEval) {
+            lazyExports();
+          }
+
+          exportsObj[key] = value;
+          return true;
+        },
       });
     }
   }
