@@ -51,6 +51,7 @@
 #include "gtest/gtest.h"
 #include <yoga/YGNode.h>
 
+#include "valdi_core/cpp/Marshalling/RegisteredCppGeneratedClass.hpp"
 #include "valdi_modules/test/test.hpp"
 
 #include <atomic>
@@ -6163,6 +6164,45 @@ TEST_P(RuntimeFixture, supportsExportedFunction) {
               calculator->toString(snap::valdi_modules::test::CalculatorToStringFormat::DECIMAL));
     ASSERT_EQ(StringBox::fromCString("30"),
               calculator->toString(snap::valdi_modules::test::CalculatorToStringFormat::INTEGER));
+}
+
+TEST_P(RuntimeFixture, resolveAsTypedObjectReturnsTypedObject) {
+    auto result = snap::valdi_modules::test::MakeCalculator::resolveAsTypedObject(
+        *wrapper.runtime->getJavaScriptRuntime(), nullptr);
+    ASSERT_TRUE(result) << result.description();
+
+    auto typedObject = result.value();
+    ASSERT_NE(typedObject, nullptr);
+
+    // The TypedObject wraps a class schema named "MakeCalculator" with one property (the function).
+    ASSERT_EQ(typedObject->getClassName(), StringBox::fromCString("MakeCalculator"));
+    ASSERT_EQ(typedObject->getPropertiesSize(), 1u);
+
+    // Property 0 should be the callable function.
+    const auto& functionValue = typedObject->getProperty(0);
+    ASSERT_TRUE(functionValue.isFunction());
+}
+
+TEST_P(RuntimeFixture, registeredSchemaReturnsValidSchema) {
+    auto& schema = snap::valdi_modules::test::MakeCalculator::registeredSchema();
+    ASSERT_EQ(schema.getClassName(), StringBox::fromCString("MakeCalculator"));
+
+    auto classSchemaResult = schema.getResolvedClassSchema();
+    ASSERT_TRUE(classSchemaResult) << classSchemaResult.description();
+
+    auto classSchema = classSchemaResult.value();
+    ASSERT_EQ(classSchema->getClassName(), StringBox::fromCString("MakeCalculator"));
+
+    // MakeCalculator has one property: the makeCalculator function itself.
+    ASSERT_EQ(classSchema->getPropertiesSize(), 1u);
+    const auto& prop = classSchema->getProperty(0);
+    ASSERT_EQ(prop.name, StringBox::fromCString("makeCalculator"));
+    ASSERT_TRUE(prop.schema.isFunction());
+
+    // makeCalculator() takes 0 parameters.
+    auto* funcSchema = prop.schema.getFunction();
+    ASSERT_NE(funcSchema, nullptr);
+    ASSERT_EQ(funcSchema->getParametersSize(), 0u);
 }
 
 TEST_P(RuntimeFixture, supportsLongObject) {
