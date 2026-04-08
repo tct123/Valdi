@@ -144,5 +144,8 @@ export class ValdiWebRendererDelegate implements IRendererDelegate {
   onUncaughtError(message: string, error: Error): void {
     console.error(message, error);
   }
-  onDestroyed(): void {}
+  onDestroyed(): void {
+    this.frameObserver = undefined;
+    this.resizeObserver?.disconnect();
+  }
 }

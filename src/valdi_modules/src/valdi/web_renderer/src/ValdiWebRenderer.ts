@@ -31,6 +31,10 @@ export class ValdiWebRenderer extends Renderer implements UpdateAttributeDelegat
     super.attributeUpdatedExternally(elementId, attributeName, attributeValue);
   }
   
+  destroy() {
+    this.delegate.onDestroyed();
+  }
+
   renderRootComponent<T extends IComponent<ViewModel, Context>, ViewModel = any, Context = any>(
     ctr: ComponentConstructor<T>,
     prototype: ComponentPrototype,
