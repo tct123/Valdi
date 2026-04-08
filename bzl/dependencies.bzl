@@ -454,7 +454,9 @@ def setup_dependencies(workspace_root = None):
     http_archive(
         name = "libjpeg_turbo",
         build_file = "@skia//bazel/external/libjpeg_turbo:BUILD.bazel",
-        url = "https://chromium.googlesource.com/chromium/deps/libjpeg_turbo/+archive/e14cbfaa85529d47f9f55b0f104a579c1061f9ad.tar.gz",
+        url = "https://github.com/librepo/chromium-libjpeg_turbo/archive/e14cbfaa85529d47f9f55b0f104a579c1061f9ad.tar.gz",
+        strip_prefix = "chromium-libjpeg_turbo-e14cbfaa85529d47f9f55b0f104a579c1061f9ad",
+        integrity = "sha256-tjyUKJeHb8oX2Y8LcO+b4P1GUWHsGaf3dQHOtN/bnf4=",
         patches = [
             "@valdi//third-party/libjpeg_turbo:warning_fix.patch",
         ],
@@ -463,7 +465,9 @@ def setup_dependencies(workspace_root = None):
     http_archive(
         name = "libpng",
         build_file = "@skia//bazel/external/libpng:BUILD.bazel",
-        url = "https://skia.googlesource.com/third_party/libpng.git/+archive/ed217e3e601d8e462f7fd1e04bed43ac42212429.tar.gz",
+        url = "https://github.com/aosp-mirror/platform_external_libpng/archive/ed217e3e601d8e462f7fd1e04bed43ac42212429.tar.gz",
+        strip_prefix = "platform_external_libpng-ed217e3e601d8e462f7fd1e04bed43ac42212429",
+        integrity = "sha256-W+kzz3e2EKLJ2pqXKwV4v7TAmJJAW2T0PpLD0K4s48Q=",
         patch_args = ["-p1"],
         patches = [
             "@valdi//third-party/libpng:fix_armv7.patch",
