@@ -976,7 +976,11 @@ JSValueRef ProtobufModule::getNamespaceEntries(JSFunctionNativeCallContext& call
     auto namespaceId = getIndex(callContext, 1);
     CHECK_CALL_CONTEXT(callContext);
 
-    auto namespaceEnties = messageFactory->getNamespaceEntriesForId(namespaceId, callContext.getExceptionTracker());
+    std::vector<ProtobufMessageFactory::NamespaceEntry> namespaceEnties;
+    {
+        auto factoryLock = messageFactory->lock();
+        namespaceEnties = messageFactory->getNamespaceEntriesForId(namespaceId, callContext.getExceptionTracker());
+    }
     CHECK_CALL_CONTEXT(callContext);
 
     return namespaceEntriesToJS(callContext.getContext(), callContext.getExceptionTracker(), namespaceEnties);
@@ -984,8 +988,13 @@ JSValueRef ProtobufModule::getNamespaceEntries(JSFunctionNativeCallContext& call
 
 JSValueRef ProtobufModule::doLoadMessagesFromFactory(const Ref<ProtobufMessageFactory>& messageFactory,
                                                      JSFunctionNativeCallContext& callContext) {
-    auto descriptorNames = messageFactory->getDescriptorNames();
-    auto rootNamespaceEntries = messageFactory->getRootNamespaceEntries();
+    std::vector<std::string> descriptorNames;
+    std::vector<ProtobufMessageFactory::NamespaceEntry> rootNamespaceEntries;
+    {
+        auto factoryLock = messageFactory->lock();
+        descriptorNames = messageFactory->getDescriptorNames();
+        rootNamespaceEntries = messageFactory->getRootNamespaceEntries();
+    }
 
     // Step 2: We build a description of all the registered messages and fields along with their indexes
     // in which they can be reached in the message factory.
