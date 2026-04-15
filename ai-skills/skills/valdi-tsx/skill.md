@@ -186,6 +186,26 @@ onRender() {
 }
 ```
 
+### Font weights
+
+Only two system font weights are available:
+- `'system 16'` — regular weight
+- `'system-bold 16'` — bold weight
+
+**No other weights exist.** `system-semibold`, `system-light`, `system-medium` etc. will cause build errors. If you need semibold, use `system-bold` instead.
+
+### ScrollView restrictions
+
+`<scroll>` (ScrollView) does **not** support `flexDirection`. It always scrolls vertically. Do not set `flexDirection: 'column'` on a ScrollView style — it will cause a build error.
+
+```typescript
+// ❌ WRONG - flexDirection not valid on ScrollView
+new Style<ScrollView>({ flexDirection: 'column' })
+
+// ✅ CORRECT - ScrollView scrolls vertically by default, no flexDirection needed
+new Style<ScrollView>({ width: '100%', height: '100%' })
+```
+
 ### Style Composition
 
 ```typescript
@@ -238,6 +258,11 @@ new Style<View>({
   paddingVertical: 10,      // ❌ Use padding: '10 0'
   paddingInline: 15,        // ❌ Doesn't exist
 })
+
+// ❌ WRONG - gap property doesn't exist on View
+new Style<View>({ flexDirection: 'row', gap: '8' })
+// ✅ CORRECT - use margin on child elements instead
+// In JSX: <view marginRight={8}> or margin="0 8 0 0"
 ```
 
 ### Layout: Flexbox (Yoga)
@@ -367,11 +392,17 @@ interface GameState {
 5. **Suggesting scheduleRender()** - Deprecated, use StatefulComponent + setState()
 6. **Using addEventListener** - Use element callbacks like onTap, onPress, onChange
 7. **Using setInterval/setTimeout directly** - Use this.setTimeoutDisposable()
-8. **Using CSS properties that don't exist** - No gap, paddingHorizontal, paddingVertical
+8. **Using CSS properties that don't exist** - No gap, paddingHorizontal, paddingVertical; use margin on children for gap
 9. **Using `flex: 1`** - `flex` doesn't exist on `View`; use `flexGrow: 1` instead
 10. **Using `fontSize` on Label** - Labels use `font: 'system 20'` (string), not `fontSize`
-11. **Using `overflow: 'hidden'`** - `View` only accepts `'visible' | 'scroll'`; remove overflow or use 'scroll'
-12. **Using type aliases in `@ExportModel` ViewModels** - Only primitives and other `@ExportModel` types are allowed
+11. **Typing SIGIcon values as `string`** - `SIGIcon.cameraStroke` etc. return `Asset`, not `string`; use `import { Asset } from 'valdi_core/src/Asset'` for ViewModel fields that store icon references
+12. **Using `overflow: 'hidden'`** - `View` only accepts `'visible' | 'scroll'`; remove overflow or use 'scroll'
+13. **Using type aliases in `@ExportModel` ViewModels** - Only primitives and other `@ExportModel` types are allowed
+14. **Importing `Shape` instead of `ShapeView`** - `Shape` is not exported; use `import { ShapeView } from 'valdi_tsx/src/NativeTemplateElements'` and `new Style<ShapeView>({...})`
+15. **Using per-side border properties** - No `borderRight`, `borderRightWidth`, etc. Only `borderWidth`, `borderColor`, `borderRadius` exist. Use a thin `<view>` as a divider instead.
+16. **Using `font: 'system-semibold 16'`** - Only `system` (regular) and `system-bold` are reliably available. Use `system-bold` for semibold.
+17. **ViewModel/Context name collisions** - When a module has multiple components, each exported `ViewModel` and `ComponentContext` must have a unique name (e.g. `WeatherCardViewModel` not just `ViewModel`), or the compiler will emit conflicting platform types.
+18. **Using `flexDirection` on ScrollView** - ScrollView doesn't support flexDirection; it scrolls vertically by default
 
 ## Platform Detection
 

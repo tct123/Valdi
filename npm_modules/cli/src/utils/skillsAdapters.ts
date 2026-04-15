@@ -6,65 +6,115 @@ import type { SkillMeta } from './skillsRegistry';
 export interface SkillAdapter {
   name: string;
   detect(): boolean;
-  install(skillName: string, content: string, meta: SkillMeta): void;
+  /** Install a skill. resourceDir is the bundled skill directory (contains scripts/ etc). */
+  install(skillName: string, content: string, meta: SkillMeta, resourceDir?: string): void;
   remove(skillName: string): void;
   listInstalled(): string[];
 }
 
-// ClaudeCodeAdapter: installs to ~/.claude/plugins/local/valdi/skills/<name>/SKILL.md
-// and registers the plugin in ~/.claude/plugins/installed_plugins.json so Claude Code
-// picks up the skills as slash commands.
-const CLAUDE_PLUGIN_ID = 'valdi@local';
-const CLAUDE_PLUGIN_DIR = path.join(os.homedir(), '.claude', 'plugins', 'local', 'valdi');
-const CLAUDE_INSTALLED_PLUGINS = path.join(os.homedir(), '.claude', 'plugins', 'installed_plugins.json');
-
-function ensureClaudePluginRegistered(): void {
-  let registry: { version: number; plugins: Record<string, unknown[]> } = {
-    version: 2,
-    plugins: {},
-  };
-  if (fs.existsSync(CLAUDE_INSTALLED_PLUGINS)) {
-    try {
-      registry = JSON.parse(fs.readFileSync(CLAUDE_INSTALLED_PLUGINS, 'utf8'));
-    } catch {
-      // Corrupt file — start fresh
+/** Recursively copy a directory. Skips __pycache__ and test files. */
+function copyDirSync(src: string, dst: string): void {
+  fs.mkdirSync(dst, { recursive: true });
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    if (entry.name.startsWith('test_') || entry.name.endsWith('.spec.ts') || entry.name === '__pycache__') {
+      continue;
     }
-  }
-  if (!registry.plugins[CLAUDE_PLUGIN_ID]) {
-    registry.plugins[CLAUDE_PLUGIN_ID] = [
-      {
-        scope: 'user',
-        installPath: CLAUDE_PLUGIN_DIR,
-        version: '1.0.0',
-        installedAt: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-      },
-    ];
-    fs.writeFileSync(CLAUDE_INSTALLED_PLUGINS, JSON.stringify(registry, null, 2), 'utf8');
+    const srcEntry = path.join(src, entry.name);
+    const dstEntry = path.join(dst, entry.name);
+    if (entry.isDirectory()) {
+      copyDirSync(srcEntry, dstEntry);
+    } else {
+      fs.copyFileSync(srcEntry, dstEntry);
+    }
   }
 }
 
+const CLAUDE_PLUGIN_NAME = 'valdi@local';
+const CLAUDE_PLUGIN_VERSION = '1.0.0';
+
+function getClaudePluginInstallPath(): string {
+  return path.join(
+    os.homedir(),
+    '.claude',
+    'plugins',
+    'cache',
+    'local',
+    'valdi',
+    CLAUDE_PLUGIN_VERSION,
+  );
+}
+
+function ensureClaudePluginRegistered(): void {
+  const pluginsFile = path.join(os.homedir(), '.claude', 'plugins', 'installed_plugins.json');
+  const installPath = getClaudePluginInstallPath();
+
+  let data: { version: number; plugins: Record<string, unknown[]> } = { version: 2, plugins: {} };
+  if (fs.existsSync(pluginsFile)) {
+    try {
+      const parsed = JSON.parse(fs.readFileSync(pluginsFile, 'utf8'));
+      if (parsed && parsed.plugins) data = parsed;
+    } catch {
+      // Start fresh if file is corrupted
+    }
+  }
+
+  const now = new Date().toISOString();
+  const entry = {
+    scope: 'user',
+    installPath,
+    version: CLAUDE_PLUGIN_VERSION,
+    installedAt: now,
+    lastUpdated: now,
+  };
+
+  const existing = data.plugins[CLAUDE_PLUGIN_NAME] as Array<{ installPath: string; lastUpdated: string }> | undefined;
+  if (existing && existing.length > 0) {
+    existing[0]!.installPath = installPath;
+    existing[0]!.lastUpdated = now;
+  } else {
+    data.plugins[CLAUDE_PLUGIN_NAME] = [entry];
+  }
+
+  fs.mkdirSync(path.dirname(pluginsFile), { recursive: true });
+  fs.writeFileSync(pluginsFile, JSON.stringify(data, null, 4), 'utf8');
+}
+
+// ClaudeCodeAdapter: installs to ~/.claude/plugins/cache/local/valdi/<version>/skills/<name>/SKILL.md
+// and registers the plugin in ~/.claude/plugins/installed_plugins.json
 const ClaudeCodeAdapter: SkillAdapter = {
   name: 'claude',
   detect() {
     const claudeDir = path.join(os.homedir(), '.claude');
     return fs.existsSync(claudeDir);
   },
-  install(skillName: string, content: string, meta: SkillMeta) {
-    const skillDir = path.join(CLAUDE_PLUGIN_DIR, 'skills', skillName);
+  install(skillName: string, content: string, meta: SkillMeta, resourceDir?: string) {
+    const installPath = getClaudePluginInstallPath();
+    const skillDir = path.join(installPath, 'skills', skillName);
     fs.mkdirSync(skillDir, { recursive: true });
     const frontmatter = `---\nname: ${meta.name}\ndescription: ${meta.description}\n---\n\n`;
     fs.writeFileSync(path.join(skillDir, 'SKILL.md'), frontmatter + content, 'utf8');
+
+    // Copy resource subdirectories (e.g. scripts/) so <skill_dir>/scripts/diff.py works
+    if (resourceDir) {
+      for (const entry of fs.readdirSync(resourceDir, { withFileTypes: true })) {
+        if (entry.isDirectory()) {
+          copyDirSync(path.join(resourceDir, entry.name), path.join(skillDir, entry.name));
+        }
+      }
+    }
+
     ensureClaudePluginRegistered();
   },
   remove(skillName: string) {
-    const skillDir = path.join(CLAUDE_PLUGIN_DIR, 'skills', skillName);
+    const installPath = getClaudePluginInstallPath();
+    const skillDir = path.join(installPath, 'skills', skillName);
     if (fs.existsSync(skillDir)) {
       fs.rmSync(skillDir, { recursive: true, force: true });
     }
   },
   listInstalled() {
-    const skillsDir = path.join(CLAUDE_PLUGIN_DIR, 'skills');
+    const installPath = getClaudePluginInstallPath();
+    const skillsDir = path.join(installPath, 'skills');
     if (!fs.existsSync(skillsDir)) return [];
     return fs
       .readdirSync(skillsDir)
