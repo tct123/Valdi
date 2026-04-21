@@ -429,3 +429,22 @@ llvm = use_extension("@toolchains_llvm//toolchain/extensions:llvm.bzl", "llvm")
 llvm.toolchain(name = "llvm_toolchain", llvm_version = "16.0.0")
 use_repo(llvm, "llvm_toolchain")
 register_toolchains("@llvm_toolchain//:all")
+
+# Swift Package Manager deps for //compiler/compiler:local_valdi_compiler.
+# Consumers loading @valdi via bzlmod should also use this extension; see
+# bzl/valdi_compiler_swift_deps.bzl.
+valdi_compiler_swift_deps = use_extension("//bzl:valdi_compiler_swift_deps.bzl", "valdi_compiler_swift_deps")
+use_repo(
+    valdi_compiler_swift_deps,
+    "chalk",
+    "legible_error",
+    "swift_argument_parser",
+    "swift_backtrace",
+    "swift_collections",
+    "swift_crypto",
+    "swift_protobuf",
+    "swiftsoup",
+    "swxmlhash",
+    "yams",
+    "zip_lib",
+)

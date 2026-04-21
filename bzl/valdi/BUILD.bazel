@@ -282,9 +282,19 @@ config_setting(
     },
 )
 
-# Flag to use a locally built compiler binary instead of the prebuilt from the toolchain.
-# Build the compiler with: compiler/compiler/scripts/update_compiler.sh -o compiler/compiler/out
-# Then build with: --//bzl/valdi:use_local_compiler=true
+# Flag to build the compiler from source instead of using the prebuilt from the toolchain.
+# When enabled, the valdi toolchain routes through @valdi//compiler/compiler
+# targets instead of the prebuilt @valdi_toolchain//:valdi_compiler artifact.
+# Enable with: --//bzl/valdi:use_local_compiler=true
+#
+# Per-OS routing (see :compiler_source below):
+#   - macOS  -> :local_valdi_compiler (rules_swift swift_binary, built by Bazel)
+#   - Linux  -> :local_valdi_compiler_native (native_binary, expects
+#               scripts/update_compiler.sh output at out/linux/valdi_compiler)
+# The swift_binary target is still directly buildable on Linux
+# (`bzl build @valdi//compiler/compiler:local_valdi_compiler`) for
+# experimentation, but the toolchain doesn't go through it there -- the
+# script path is what Linux CI publishes.
 bool_flag(
     name = "use_local_compiler",
     build_setting_default = False,
@@ -298,6 +308,24 @@ config_setting(
     },
 )
 
+# The two OS-specific groups are mutually exclusive by construction
+# (linux vs macos constraints), so the select() below stays unambiguous.
+selects.config_setting_group(
+    name = "use_local_compiler_on_macos",
+    match_all = [
+        ":use_local_compiler_enabled",
+        "@snap_platforms//conditions:macos",
+    ],
+)
+
+selects.config_setting_group(
+    name = "use_local_compiler_on_linux",
+    match_all = [
+        ":use_local_compiler_enabled",
+        "@snap_platforms//conditions:linux",
+    ],
+)
+
 # Alias to choose between prebuilt binary and source-built companion
 alias(
     name = "compiler_companion_source",
@@ -308,11 +336,14 @@ alias(
     visibility = ["//visibility:public"],
 )
 
-# Compiler: prebuilt from toolchain or local binary (see use_local_compiler)
+# Compiler: prebuilt from toolchain, or one of the local variants when
+# use_local_compiler=true is set. See the flag docstring above for the
+# per-OS routing rationale.
 alias(
     name = "compiler_source",
     actual = select({
-        ":use_local_compiler_enabled": "//compiler/compiler:local_valdi_compiler",
+        ":use_local_compiler_on_macos": "//compiler/compiler:local_valdi_compiler",
+        ":use_local_compiler_on_linux": "//compiler/compiler:local_valdi_compiler_native",
         "//conditions:default": "@valdi_toolchain//:valdi_compiler",
     }),
     visibility = ["//visibility:private"],
