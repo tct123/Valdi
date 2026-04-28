@@ -29,7 +29,7 @@ single_version_override(
 bazel_dep(name = "bazel_skylib", version = "1.2.0")
 bazel_dep(name = "rules_java", version = "7.4.0")
 
-bazel_dep(name = "rules_android", version = "0.5.1")
+bazel_dep(name = "rules_android", version = "0.6.5")
 bazel_dep(name = "rules_android_ndk", version = "0.1.3")
 single_version_override(module_name = "rules_android_ndk", patches = [
     "@valdi//third-party/rules_android_ndk/patches:expose_bins.patch",
@@ -412,6 +412,12 @@ http_archive(
     strip_prefix = "ocmock-3.9.4",
     url = "https://github.com/erikdoe/ocmock/archive/refs/tags/v3.9.4.tar.gz",
 )
+
+# Expose prebuilt compiler/pngquant/jscore repos to the main workspace.
+# The bin/ sub-module also uses this extension, but targets in the main workspace
+# reference these repos via prebuilt_tools.bzl (e.g. @jscore_libs, @valdi_pngquant_*).
+valdi_compiler_repos = use_extension("//bzl:valdi_compiler_repos_extension.bzl", "valdi_compiler_repos")
+use_repo(valdi_compiler_repos, "jscore_libs", "valdi_compiler_macos", "valdi_compiler_linux", "valdi_pngquant_macos", "valdi_pngquant_linux")
 
 register_toolchains("@valdi//bzl/valdi:valdi_toolchain")
 
