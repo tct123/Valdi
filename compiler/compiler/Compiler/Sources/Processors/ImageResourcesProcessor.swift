@@ -8,6 +8,12 @@
 
 import Foundation
 
+private struct ExplicitImageAssetKey: Hashable {
+    let moduleName: String
+    let relativeProjectAssetDirectoryPath: String
+    let assetName: String
+}
+
 // [.imageAsset] -> [.imageResource]
 class ImageResourcesProcessor: CompilationProcessor {
 
@@ -26,8 +32,9 @@ class ImageResourcesProcessor: CompilationProcessor {
     private let lock = DispatchSemaphore.newLock()
     private var imageConverterDependencies: [String: String]?
     private let imageVariantsFilter: ImageVariantsFilter?
+    private let explicitOutputsByAsset: [ExplicitImageAssetKey: [ImageVariantSpecs]]?
 
-    init(logger: ILogger, 
+    init(logger: ILogger,
          fileManager: ValdiFileManager,
          diskCacheProvider: DiskCacheProvider,
          projectConfig: ValdiProjectConfig,
@@ -43,6 +50,18 @@ class ImageResourcesProcessor: CompilationProcessor {
         self.imageVariantsFilter = imageVariantsFilter
         self.alwaysUseVariantAgnosticFilenames = alwaysUseVariantAgnosticFilenames
         self.imageConverter = ImageConverter(logger: logger, fileManager: fileManager, projectConfig: projectConfig, imageToolbox: imageToolbox)
+        self.explicitOutputsByAsset = compilerConfig.explicitImageAssetManifest.map { manifest in
+            var map = [ExplicitImageAssetKey: [ImageVariantSpecs]]()
+            for asset in manifest.assets {
+                let key = ExplicitImageAssetKey(moduleName: asset.moduleName,
+                                                relativeProjectAssetDirectoryPath: asset.relativeProjectAssetDirectoryPath,
+                                                assetName: asset.assetName)
+                map[key] = asset.outputs.map {
+                    ImageVariantSpecs(filenamePattern: $0.filenamePattern, scale: $0.scale, platform: $0.platform)
+                }
+            }
+            return map
+        }
 
         // Warm up the disk caches we know we will use
         FileExtensions.exportedImages.forEach { imageExt in
@@ -140,14 +159,26 @@ class ImageResourcesProcessor: CompilationProcessor {
         return imageVariantsFilter.shouldInclude(platform: platform, scale: variantSpecs.scale)
     }
 
-    private func findMissingVariants(currentVariants: [ImageAssetVariant]) -> [ImageVariantSpecs] {
+    private func findMissingVariants(currentVariants: [ImageAssetVariant], targetSpecs: [ImageVariantSpecs]) -> [ImageVariantSpecs] {
         let existingVariants = Set(currentVariants.map { $0.variantSpecs.identifier })
+        return targetSpecs.filter { !existingVariants.contains($0.identifier) }
+    }
+
+    private func explicitOutputs(for item: SelectedItem<ImageAsset>) -> [ImageVariantSpecs]? {
+        guard let explicitOutputsByAsset else { return nil }
+        let key = ExplicitImageAssetKey(moduleName: item.item.bundleInfo.name,
+                                        relativeProjectAssetDirectoryPath: item.data.identifier.relativeProjectAssetDirectoryPath,
+                                        assetName: item.data.identifier.assetName)
+        return explicitOutputsByAsset[key]
+    }
+
+    private func defaultTargetSpecs() -> [ImageVariantSpecs] {
         let targetSpecs = ImageVariantResolver.exportedVariantSpecs(
             android: compilerConfig.outputForAndroid,
             ios: compilerConfig.outputForIOS,
             web: compilerConfig.outputForWeb
         )
-        return targetSpecs.filter { shouldInclude(variantSpecs: $0) && !existingVariants.contains($0.identifier) }
+        return targetSpecs.filter { shouldInclude(variantSpecs: $0) }
     }
 
     private func makeImageResourceItem(fromCompilationItem: CompilationItem, imageAsset: ImageAsset) -> [CompilationItem] {
@@ -188,21 +219,33 @@ class ImageResourcesProcessor: CompilationProcessor {
                 throw CompilerError("No variants available!")
             }
 
-            // Step 1: We find the image variants which we don't currently have
-            let missingVariants = findMissingVariants(currentVariants: item.data.variants)
+            // Step 1: Determine the set of output variants we need to emit. When an explicit
+            // image asset manifest is configured, the target list comes from the manifest
+            // (Bazel has already applied platform/scale gating). Otherwise we fall back to
+            // the compiler's own platform + variants-filter rules.
+            let targetSpecs: [ImageVariantSpecs]
+            if let outputs = explicitOutputs(for: item) {
+                targetSpecs = outputs
+            } else {
+                targetSpecs = defaultTargetSpecs()
+            }
 
-            // Step 2: Find the variant we can use for resizing the images
+            // Step 2: Find variants we don't already have on disk and need to generate.
+            let missingVariants = findMissingVariants(currentVariants: item.data.variants, targetSpecs: targetSpecs)
+
+            // Step 3: Find the variant we can use for resizing the images
             let bestVariant = item.data.bestVariant!
 
             let inputImage = bestVariant.file
 
             return try inputImage.withURL { url in
-                // Step 3: Generate all the missing variants
+                // Step 4: Generate all the missing variants
 
                 let generatedImages = try missingVariants.map { try generateImage(fromImageAssetVariant: bestVariant, sourceItemProjectPath: item.item.relativeProjectPath, inputImageURL: url, inputImageData: try inputImage.readData(), variantSpecs: $0) }
 
+                let targetIdentifiers = Set(targetSpecs.map { $0.identifier })
                 let allVariants = (item.data.variants + generatedImages).filter { variant in
-                    return shouldInclude(variantSpecs: variant.variantSpecs)
+                    return targetIdentifiers.contains(variant.variantSpecs.identifier)
                 }
 
                 let newImageAsset = ImageAsset(identifier: item.data.identifier, size: item.data.size, variants: allVariants)

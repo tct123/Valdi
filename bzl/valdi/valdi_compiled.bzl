@@ -419,7 +419,7 @@ def _invoke_valdi_compiler(ctx, module_name, module_yaml, enable_android = True,
     (explicit_input_list_file, all_inputs, module_directory) = _prepare_explicit_input_list_file(ctx, module_yaml)
     explicit_image_asset_manifest_file = None
     if ctx.attr.use_explicit_image_manifest[BuildSettingInfo].value:
-        explicit_image_asset_manifest_file = _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directory)
+        explicit_image_asset_manifest_file = _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directory, enable_android, enable_ios, bool(enable_web), ctx.attr.inline_assets)
 
     localization_mode = ctx.attr.localization_mode[BuildSettingInfo].value
     js_bytecode_format = ctx.attr.js_bytecode_format[BuildSettingInfo].value
@@ -607,6 +607,48 @@ def _prepare_explicit_input_list_file(ctx, module_yaml):
 
     return (explicit_input_list_file, ctx.files._valdi_base + dependencies_list, direct_module_directory)
 
+_IOS_OUTPUT_VARIANTS = [
+    {"filename_pattern": "$file@2x.png", "platform": "ios", "scale": 2.0},
+    {"filename_pattern": "$file@3x.png", "platform": "ios", "scale": 3.0},
+]
+
+_ANDROID_OUTPUT_VARIANTS = [
+    {"filename_pattern": "drawable-mdpi/$file.webp", "platform": "android", "scale": 1.0},
+    {"filename_pattern": "drawable-hdpi/$file.webp", "platform": "android", "scale": 1.5},
+    {"filename_pattern": "drawable-xhdpi/$file.webp", "platform": "android", "scale": 2.0},
+    {"filename_pattern": "drawable-xxhdpi/$file.webp", "platform": "android", "scale": 3.0},
+    {"filename_pattern": "drawable-xxxhdpi/$file.webp", "platform": "android", "scale": 4.0},
+]
+
+_WEB_OUTPUT_VARIANTS = [
+    {"filename_pattern": "$file.png", "platform": "web", "scale": 3.0},
+]
+
+# Mirrors the inline-assets gating done by ImageVariantsFilter when
+# `--image-variants-filter android=4.0;ios=3.0` is passed: keep only the
+# highest scale per platform for android/ios, leave web (and any other
+# platform without an explicit filter entry) untouched.
+def _filter_inline_assets_output_variants(variants):
+    return [
+        v
+        for v in variants
+        if (v["platform"] == "android" and v["scale"] == 4.0) or (v["platform"] == "ios" and v["scale"] == 3.0) or v["platform"] == "web"
+    ]
+
+def _compute_image_asset_output_variants(enable_android, enable_ios, enable_web, inline_assets):
+    variants = []
+    if enable_ios:
+        variants += _IOS_OUTPUT_VARIANTS
+    if enable_android:
+        variants += _ANDROID_OUTPUT_VARIANTS
+    if enable_web:
+        variants += _WEB_OUTPUT_VARIANTS
+
+    if inline_assets:
+        variants = _filter_inline_assets_output_variants(variants)
+
+    return variants
+
 def _android_image_variant_spec(directory):
     android_scales = {
         "drawable-mdpi": 1.0,
@@ -651,7 +693,7 @@ def _image_manifest_input(resource, module_name, module_directory):
         else:
             filename_pattern = "$file" + ext
             platform = "web"
-            scale = 1.0
+            scale = 3.0
     elif ext == ".webp":
         variant_directory = paths.basename(paths.dirname(resource.path))
         variant_spec = _android_image_variant_spec(variant_directory)
@@ -675,8 +717,10 @@ def _image_manifest_input(resource, module_name, module_directory):
         "scale": scale,
     }
 
-def _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directory):
+def _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directory, enable_android, enable_ios, enable_web, inline_assets):
     """Write a JSON file with the list of image assets that should be identified by the Valdi compiler."""
+
+    output_variants = _compute_image_asset_output_variants(enable_android, enable_ios, enable_web, inline_assets)
 
     assets_by_key = {}
     for resource in ctx.files.res:
@@ -690,6 +734,7 @@ def _prepare_explicit_image_asset_manifest_file(ctx, module_name, module_directo
                 "asset_name": input["asset_name"],
                 "inputs": [],
                 "module_name": module_name,
+                "outputs": output_variants,
                 "relative_project_asset_directory_path": input["relative_project_asset_directory_path"],
             }
 

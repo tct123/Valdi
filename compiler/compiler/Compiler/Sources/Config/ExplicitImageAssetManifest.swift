@@ -10,11 +10,18 @@ struct ExplicitImageAssetManifestInput: Codable {
     let platform: Platform?
 }
 
+struct ExplicitImageAssetManifestOutput: Codable {
+    let filenamePattern: String
+    let scale: Double
+    let platform: Platform?
+}
+
 struct ExplicitImageAssetManifestAsset: Codable {
     let moduleName: String
     let assetName: String
     let relativeProjectAssetDirectoryPath: String
     let inputs: [ExplicitImageAssetManifestInput]
+    let outputs: [ExplicitImageAssetManifestOutput]
 }
 
 struct ExplicitImageAssetManifest: Codable {
@@ -36,7 +43,8 @@ extension ExplicitImageAssetManifestAsset {
         return ExplicitImageAssetManifestAsset(moduleName: moduleName,
                                                assetName: assetName,
                                                relativeProjectAssetDirectoryPath: try relativeProjectAssetDirectoryPath.resolvingVariables(variables),
-                                               inputs: try inputs.map { try $0.resolvingVariables(variables) })
+                                               inputs: try inputs.map { try $0.resolvingVariables(variables) },
+                                               outputs: outputs)
     }
 }
 
